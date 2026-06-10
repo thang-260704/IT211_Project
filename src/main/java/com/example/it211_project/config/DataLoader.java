@@ -21,50 +21,47 @@ public class DataLoader {
 
     @Bean
     CommandLineRunner loadData() {
-
         return args -> {
 
-            if(roleRepository.count() == 0){
+            Role adminRole = roleRepository.findByName("ROLE_ADMIN")
+                    .orElseGet(() -> roleRepository.save(
+                            Role.builder().name("ROLE_ADMIN").build()
+                    ));
 
-                Role adminRole = roleRepository.save(
-                        Role.builder()
-                                .name("ROLE_ADMIN")
-                                .build()
-                );
+            Role studentRole = roleRepository.findByName("ROLE_STUDENT")
+                    .orElseGet(() -> roleRepository.save(
+                            Role.builder().name("ROLE_STUDENT").build()
+                    ));
 
-                Role studentRole = roleRepository.save(
-                        Role.builder()
-                                .name("ROLE_STUDENT")
-                                .build()
-                );
+            Role lecturerRole = roleRepository.findByName("ROLE_LECTURER")
+                    .orElseGet(() -> roleRepository.save(
+                            Role.builder().name("ROLE_LECTURER").build()
+                    ));
 
-                User admin = User.builder()
-                        .fullName("Admin")
-                        .username("admin")
-                        .email("admin@gmail.com")
-                        .password(
-                                passwordEncoder.encode("123456")
-                        )
-                        .active(true)
-                        .roles(Set.of(adminRole))
-                        .build();
+            User admin = userRepository.findByUsername("admin")
+                    .orElse(User.builder()
+                            .fullName("Admin")
+                            .username("admin")
+                            .email("admin@gmail.com")
+                            .password(passwordEncoder.encode("123456"))
+                            .active(true)
+                            .build());
 
-                userRepository.save(admin);
-            }
-            Role lecturerRole = roleRepository.save(
-                    Role.builder()
-                            .name("ROLE_LECTURER")
-                            .build()
-            );
-            User lecturer = User.builder()
-                    .fullName("Lecturer")
-                    .username("lecturer")
-                    .email("lecturer@gmail.com")
-                    .password(passwordEncoder.encode("123456"))
-                    .active(true)
-                    .roles(Set.of(lecturerRole))
-                    .build();
+            admin.setRoles(Set.of(adminRole));
+            admin.setActive(true);
+            userRepository.save(admin);
 
+            User lecturer = userRepository.findByUsername("lecturer")
+                    .orElse(User.builder()
+                            .fullName("Lecturer")
+                            .username("lecturer")
+                            .email("lecturer@gmail.com")
+                            .password(passwordEncoder.encode("123456"))
+                            .active(true)
+                            .build());
+
+            lecturer.setRoles(Set.of(lecturerRole));
+            lecturer.setActive(true);
             userRepository.save(lecturer);
         };
     }

@@ -3,23 +3,20 @@ package com.example.it211_project.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
-
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "token_blacklist")
-public class TokenBlacklist {
+@Table(name = "lecture_materials")
+public class LectureMaterial {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 1000, unique = true, nullable = false)
-    private String token;
+    private String title;
 
-    private LocalDateTime expiredAt;
+    private String fileUrl;
 }

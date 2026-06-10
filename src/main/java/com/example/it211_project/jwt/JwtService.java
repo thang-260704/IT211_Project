@@ -24,24 +24,35 @@ public class JwtService {
             Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
 
     private final long accessExpiration = 1000L * 60 * 15;
+
     private final long refreshExpiration = 1000L * 60 * 60 * 24 * 7;
 
     public String generateAccessToken(User user) {
+
         List<String> roles = user.getRoles()
                 .stream()
                 .map(Role::getName)
                 .toList();
 
-        return generateToken(user.getUsername(), roles, accessExpiration);
+        return generateToken(
+                user.getUsername(),
+                roles,
+                accessExpiration
+        );
     }
 
     public String generateRefreshToken(User user) {
+
         List<String> roles = user.getRoles()
                 .stream()
                 .map(Role::getName)
                 .toList();
 
-        return generateToken(user.getUsername(), roles, refreshExpiration);
+        return generateToken(
+                user.getUsername(),
+                roles,
+                refreshExpiration
+        );
     }
 
     private String generateToken(
@@ -50,7 +61,8 @@ public class JwtService {
             long expiration
     ) {
         Date now = new Date();
-        Date expiredAt = new Date(now.getTime() + expiration);
+        Date expiredAt =
+                new Date(now.getTime() + expiration);
 
         return Jwts.builder()
                 .subject(username)
@@ -66,7 +78,8 @@ public class JwtService {
     }
 
     public LocalDateTime extractExpiration(String token) {
-        Date expiration = extractClaims(token).getExpiration();
+        Date expiration =
+                extractClaims(token).getExpiration();
 
         return expiration.toInstant()
                 .atZone(ZoneId.systemDefault())
@@ -76,6 +89,7 @@ public class JwtService {
     public boolean isTokenValid(String token) {
         try {
             extractClaims(token);
+
             return true;
         } catch (Exception e) {
             return false;

@@ -1,5 +1,8 @@
 package com.example.it211_project.service;
 
+import com.example.it211_project.dto.ChangePasswordRequest;
+import com.example.it211_project.dto.ForgotPasswordRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import com.example.it211_project.dto.RegisterStudentRequest;
 import com.example.it211_project.dto.UserResponse;
 import com.example.it211_project.entity.Role;
@@ -21,7 +24,6 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // FR-04 Register Student
     public UserResponse registerStudent(RegisterStudentRequest request) {
 
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -50,13 +52,11 @@ public class UserService {
         return mapToResponse(saved);
     }
 
-    // FR-05 Search User
     public Page<UserResponse> searchUsers(
             String keyword,
             int page,
             int size
     ) {
-
         Pageable pageable = PageRequest.of(page, size);
 
         return userRepository
@@ -66,6 +66,45 @@ public class UserService {
                         pageable
                 )
                 .map(this::mapToResponse);
+    }
+
+    public String changePassword(
+            ChangePasswordRequest request,
+            String username
+    ) {
+        User user = userRepository
+                .findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(
+                request.getOldPassword(),
+                user.getPassword()
+        )) {
+            throw new RuntimeException("Old password incorrect");
+        }
+
+        user.setPassword(
+                passwordEncoder.encode(request.getNewPassword())
+        );
+
+        userRepository.save(user);
+
+        return "Password changed";
+    }
+    public String forgotPassword(
+            ForgotPasswordRequest request
+    ) {
+        User user = userRepository
+                .findByUsername(request.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setPassword(
+                passwordEncoder.encode(request.getNewPassword())
+        );
+
+        userRepository.save(user);
+
+        return "Password reset success";
     }
 
     private UserResponse mapToResponse(User user) {
@@ -83,5 +122,6 @@ public class UserService {
                 user.isActive(),
                 roles
         );
+
     }
 }

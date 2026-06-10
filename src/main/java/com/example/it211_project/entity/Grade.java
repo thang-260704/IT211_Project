@@ -3,23 +3,24 @@ package com.example.it211_project.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
-
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "token_blacklist")
-public class TokenBlacklist {
+@Table(name = "grades")
+public class Grade {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 1000, unique = true, nullable = false)
-    private String token;
+    private Double score;
 
-    private LocalDateTime expiredAt;
+    private String feedback;
+
+    @OneToOne
+    @JoinColumn(name = "submission_id")
+    private Submission submission;
 }
