@@ -16,29 +16,19 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class EnrollmentService {
 
+    private final EnrollmentRepository enrollmentRepository;
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
-    private final EnrollmentRepository enrollmentRepository;
 
-    // FR-06
     public EnrollmentResponse registerCourse(
             Long studentId,
             Long courseId
     ) {
-
         User student = userRepository.findById(studentId)
-                .orElseThrow();
+                .orElseThrow(() -> new RuntimeException("Student not found"));
 
         Course course = courseRepository.findById(courseId)
-                .orElseThrow();
-
-        if (enrollmentRepository
-                .existsByStudentAndCourse(student, course)) {
-
-            throw new RuntimeException(
-                    "Student already enrolled"
-            );
-        }
+                .orElseThrow(() -> new RuntimeException("Course not found"));
 
         Enrollment enrollment = Enrollment.builder()
                 .student(student)
@@ -46,8 +36,33 @@ public class EnrollmentService {
                 .registeredAt(LocalDateTime.now())
                 .build();
 
-        Enrollment saved =
-                enrollmentRepository.save(enrollment);
+        Enrollment saved = enrollmentRepository.save(enrollment);
+
+        return new EnrollmentResponse(
+                saved.getId(),
+                student.getFullName(),
+                course.getCourseName(),
+                saved.getRegisteredAt()
+        );
+    }
+
+    public EnrollmentResponse registerCourseByUsername(
+            String username,
+            Long courseId
+    ) {
+        User student = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+
+        Enrollment enrollment = Enrollment.builder()
+                .student(student)
+                .course(course)
+                .registeredAt(LocalDateTime.now())
+                .build();
+
+        Enrollment saved = enrollmentRepository.save(enrollment);
 
         return new EnrollmentResponse(
                 saved.getId(),

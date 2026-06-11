@@ -3,104 +3,82 @@ package com.example.it211_project.jwt;
 import com.example.it211_project.entity.Role;
 import com.example.it211_project.entity.User;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
 
 @Service
 public class JwtService {
 
-    private final String secret =
-            "my-super-secret-key-for-it211-project-jwt-256-bit-long";
+    @Value("${jwt.secret}")
+    private String secret;
 
-    private final SecretKey key =
-            Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    @Value("${jwt.access-token-expiration}")
+    private Long accessTokenExpiration;
 
-    private final long accessExpiration = 1000L * 60 * 15;
-
-    private final long refreshExpiration = 1000L * 60 * 60 * 24 * 7;
+    @Value("${jwt.refresh-token-expiration}")
+    private Long refreshTokenExpiration;
 
     public String generateAccessToken(User user) {
-
-        List<String> roles = user.getRoles()
-                .stream()
-                .map(Role::getName)
-                .toList();
-
-        return generateToken(
-                user.getUsername(),
-                roles,
-                accessExpiration
-        );
+        return generateToken(user, accessTokenExpiration);
     }
 
     public String generateRefreshToken(User user) {
+        return generateToken(user, refreshTokenExpiration);
+    }
+
+    private String generateToken(User user, Long expirationTime) {
 
         List<String> roles = user.getRoles()
                 .stream()
                 .map(Role::getName)
                 .toList();
 
-        return generateToken(
-                user.getUsername(),
-                roles,
-                refreshExpiration
-        );
-    }
-
-    private String generateToken(
-            String username,
-            List<String> roles,
-            long expiration
-    ) {
-        Date now = new Date();
-        Date expiredAt =
-                new Date(now.getTime() + expiration);
-
         return Jwts.builder()
-                .subject(username)
+                .subject(user.getUsername())
                 .claim("roles", roles)
-                .issuedAt(now)
-                .expiration(expiredAt)
-                .signWith(key)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expirationTime))
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
     }
 
     public String extractUsername(String token) {
-        return extractClaims(token).getSubject();
+        return extractAllClaims(token)
+                .getSubject();
     }
 
-    public LocalDateTime extractExpiration(String token) {
-        Date expiration =
-                extractClaims(token).getExpiration();
-
-        return expiration.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .toLocalDateTime();
+    public Date extractExpiration(String token) {
+        return extractAllClaims(token)
+                .getExpiration();
     }
 
     public boolean isTokenValid(String token) {
         try {
-            extractClaims(token);
-
-            return true;
-        } catch (Exception e) {
+            Date expiration = extractExpiration(token);
+            return expiration.after(new Date());
+        } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }
 
-    private Claims extractClaims(String token) {
+    private Claims extractAllClaims(String token) {
         return Jwts.parser()
-                .verifyWith(key)
+                .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    private SecretKey getSigningKey() {
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 }

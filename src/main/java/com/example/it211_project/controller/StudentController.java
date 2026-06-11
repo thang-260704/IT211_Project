@@ -4,7 +4,9 @@ import com.example.it211_project.dto.EnrollmentResponse;
 import com.example.it211_project.dto.SubmissionRequest;
 import com.example.it211_project.service.EnrollmentService;
 import com.example.it211_project.service.StudentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -12,6 +14,7 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/api/v1/student")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('STUDENT')")
 public class StudentController {
 
     private final EnrollmentService enrollmentService;
@@ -19,18 +22,18 @@ public class StudentController {
 
     @PostMapping("/register-course")
     public EnrollmentResponse registerCourse(
-            @RequestParam Long studentId,
-            @RequestParam Long courseId
+            @RequestParam Long courseId,
+            Principal principal
     ) {
-        return enrollmentService.registerCourse(
-                studentId,
+        return enrollmentService.registerCourseByUsername(
+                principal.getName(),
                 courseId
         );
     }
 
     @PostMapping("/submit-project")
     public String submitProject(
-            @RequestBody SubmissionRequest request,
+            @Valid @RequestBody SubmissionRequest request,
             Principal principal
     ) {
         return studentService.submitProject(

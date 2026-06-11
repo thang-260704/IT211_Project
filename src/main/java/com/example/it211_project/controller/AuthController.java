@@ -26,14 +26,14 @@ public class AuthController {
 
     @PostMapping("/login")
     public AuthResponse login(
-            @RequestBody LoginRequest request
+            @Valid @RequestBody LoginRequest request
     ) {
         return authService.login(request);
     }
 
     @PostMapping("/refresh")
     public AuthResponse refresh(
-            @RequestBody RefreshTokenRequest request
+            @Valid @RequestBody RefreshTokenRequest request
     ) {
         return authService.refresh(request);
     }
@@ -47,7 +47,7 @@ public class AuthController {
 
     @PostMapping("/change-password")
     public String changePassword(
-            @RequestBody ChangePasswordRequest request,
+            @Valid @RequestBody ChangePasswordRequest request,
             Principal principal
     ) {
         return userService.changePassword(
@@ -58,7 +58,7 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     public String forgotPassword(
-            @RequestBody ForgotPasswordRequest request
+            @Valid @RequestBody ForgotPasswordRequest request
     ) {
         return userService.forgotPassword(request);
     }
