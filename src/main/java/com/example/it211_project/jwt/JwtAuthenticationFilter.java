@@ -1,7 +1,7 @@
 package com.example.it211_project.jwt;
 
-import com.example.it211_project.repository.TokenBlacklistRepository;
 import com.example.it211_project.service.CustomUserDetailsService;
+import com.example.it211_project.service.RedisTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,21 +22,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
-    private final TokenBlacklistRepository tokenBlacklistRepository;
+    private final RedisTokenService redisTokenService;
 
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
+    protected boolean shouldNotFilter(
+            HttpServletRequest request
+    ) {
         String path = request.getServletPath();
+        String method = request.getMethod();
 
-        return path.equals("/api/v1/auth/login")
+        return method.equalsIgnoreCase("OPTIONS")
+                || path.equals("/api/v1/auth/login")
                 || path.equals("/api/v1/auth/register")
                 || path.equals("/api/v1/auth/refresh")
                 || path.equals("/api/v1/auth/forgot-password")
-                || path.equals("/api/auth/login")
-                || path.equals("/api/auth/register")
-                || path.equals("/api/auth/refresh")
-                || path.equals("/api/auth/forgot-password")
-                || path.startsWith("/h2-console");
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs");
     }
 
     @Override
@@ -53,7 +54,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (tokenBlacklistRepository.existsByToken(token)) {
+        if (redisTokenService.isTokenBlacklisted(token)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
@@ -65,7 +66,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String username = jwtService.extractUsername(token);
 
-        var userDetails = userDetailsService.loadUserByUsername(username);
+        var userDetails =
+                userDetailsService.loadUserByUsername(username);
 
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
@@ -75,15 +77,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 );
 
         authentication.setDetails(
-                new WebAuthenticationDetailsSource().buildDetails(request)
+                new WebAuthenticationDetailsSource()
+                        .buildDetails(request)
         );
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        SecurityContextHolder
+                .getContext()
+                .setAuthentication(authentication);
 
         filterChain.doFilter(request, response);
     }
 
-    private String getTokenFromRequest(HttpServletRequest request) {
+    private String getTokenFromRequest(
+            HttpServletRequest request
+    ) {
         String bearerToken = request.getHeader("Authorization");
 
         if (StringUtils.hasText(bearerToken)

@@ -3,10 +3,8 @@ package com.example.it211_project.service;
 import com.example.it211_project.dto.AuthResponse;
 import com.example.it211_project.dto.LoginRequest;
 import com.example.it211_project.dto.RefreshTokenRequest;
-import com.example.it211_project.entity.TokenBlacklist;
 import com.example.it211_project.entity.User;
 import com.example.it211_project.jwt.JwtService;
-import com.example.it211_project.repository.TokenBlacklistRepository;
 import com.example.it211_project.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,8 +12,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Date;
 
 @Service
@@ -25,7 +21,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final JwtService jwtService;
-    private final TokenBlacklistRepository tokenBlacklistRepository;
+    private final RedisTokenService redisTokenService;
 
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
@@ -78,19 +74,13 @@ public class AuthService {
             accessToken = accessToken.substring(7);
         }
 
-        Date expirationDate = jwtService.extractExpiration(accessToken);
+        Date expirationDate =
+                jwtService.extractExpiration(accessToken);
 
-        LocalDateTime expiredAt = expirationDate
-                .toInstant()
-                .atZone(ZoneId.systemDefault())
-                .toLocalDateTime();
-
-        TokenBlacklist tokenBlacklist = TokenBlacklist.builder()
-                .token(accessToken)
-                .expiredAt(expiredAt)
-                .build();
-
-        tokenBlacklistRepository.save(tokenBlacklist);
+        redisTokenService.blacklistToken(
+                accessToken,
+                expirationDate
+        );
 
         SecurityContextHolder.clearContext();
 
